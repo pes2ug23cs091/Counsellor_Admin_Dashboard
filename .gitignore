@@ -1,0 +1,29 @@
+# Environment files (never commit these!)
+.env
+.env.local
+.env.*.local
+
+# Node dependencies (too large)
+node_modules/
+*/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+*.log
+
+# Docker (optional)
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Cache
+__pycache__/
+*.pyc
