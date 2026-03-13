@@ -4,19 +4,23 @@ const { getCache, setCache, deleteCache, CACHE_KEYS, CACHE_TTL } = require("../u
 // GET all users
 const getUsers = async (req, res) => {
   try {
-    // Try to get from cache first
-    const cachedUsers = await getCache(CACHE_KEYS.USERS);
+    const adminId = req.admin.id;
+    
+    // Try to get from cache first (include admin_id in cache key for isolation)
+    const cacheKey = `${CACHE_KEYS.USERS}:admin:${adminId}`;
+    const cachedUsers = await getCache(cacheKey);
     if (cachedUsers) {
       return res.json(cachedUsers);
     }
 
-    // If not in cache, query database
+    // If not in cache, query database - FILTER BY ADMIN_ID
     const result = await pool.query(
-      "SELECT id, name, email, risk_level, plan_status, counsellor_id, session_time, created_at, updated_at FROM users ORDER BY created_at DESC"
+      "SELECT id, name, email, risk_level, plan_status, counsellor_id, admin_id, session_time, created_at, updated_at FROM users WHERE admin_id = $1 ORDER BY created_at DESC",
+      [adminId]
     );
     
     // Store in cache
-    await setCache(CACHE_KEYS.USERS, result.rows, CACHE_TTL.USERS);
+    await setCache(cacheKey, result.rows, CACHE_TTL.USERS);
     
     res.json(result.rows);
   } catch (error) {
@@ -28,19 +32,23 @@ const getUsers = async (req, res) => {
 // GET all completed users
 const getCompletedUsers = async (req, res) => {
   try {
-    // Try to get from cache first
-    const cachedCompletedUsers = await getCache(CACHE_KEYS.COMPLETED_USERS);
+    const adminId = req.admin.id;
+    
+    // Try to get from cache first (include admin_id in cache key for isolation)
+    const cacheKey = `${CACHE_KEYS.COMPLETED_USERS}:admin:${adminId}`;
+    const cachedCompletedUsers = await getCache(cacheKey);
     if (cachedCompletedUsers) {
       return res.json(cachedCompletedUsers);
     }
 
-    // If not in cache, query database
+    // If not in cache, query database - FILTER BY ADMIN_ID
     const result = await pool.query(
-      "SELECT id, name, email, risk_level, plan_status, counsellor_id, session_time, completed_at, created_at, updated_at FROM completed_users ORDER BY completed_at DESC"
+      "SELECT id, name, email, risk_level, plan_status, counsellor_id, admin_id, session_time, completed_at, created_at, updated_at FROM completed_users WHERE admin_id = $1 ORDER BY completed_at DESC",
+      [adminId]
     );
     
     // Store in cache
-    await setCache(CACHE_KEYS.COMPLETED_USERS, result.rows, CACHE_TTL.USERS);
+    await setCache(cacheKey, result.rows, CACHE_TTL.USERS);
     
     res.json(result.rows);
   } catch (error) {
@@ -52,6 +60,7 @@ const getCompletedUsers = async (req, res) => {
 // CREATE user
 const createUser = async (req, res) => {
   try {
+    const adminId = req.admin.id;
     const { name, email, risk_level, plan_status, counsellor_id, session_time } = req.body;
 
     if (!name || !email) {
@@ -59,14 +68,15 @@ const createUser = async (req, res) => {
     }
 
     const result = await pool.query(
-      "INSERT INTO users (name, email, risk_level, plan_status, counsellor_id, session_time, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING *",
-      [name, email, risk_level || "medium", plan_status || "active", counsellor_id || null, session_time || null]
+      "INSERT INTO users (name, email, risk_level, plan_status, counsellor_id, admin_id, session_time, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *",
+      [name, email, risk_level || "medium", plan_status || "active", counsellor_id || null, adminId, session_time || null]
     );
 
-    // Clear cache when new user is created
-    await deleteCache(CACHE_KEYS.USERS);
+    // Clear cache for this admin's users
+    const cacheKey = `${CACHE_KEYS.USERS}:admin:${adminId}`;
+    await deleteCache(cacheKey);
 
-    console.log(`✅ User created: ${name}`);
+    console.log(`✅ User created: ${name} (Admin: ${adminId})`);
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error("❌ Error creating user:", error.message);
@@ -77,14 +87,15 @@ const createUser = async (req, res) => {
 // UPDATE user
 const updateUser = async (req, res) => {
   try {
+    const adminId = req.admin.id;
     const { id } = req.params;
     const { name, email, risk_level, plan_status, counsellor_id, session_time } = req.body;
 
-    // Get current user to check if status is being changed to "completed"
-    const currentUserResult = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+    // Get current user to check if status is being changed to "completed" and verify admin owns this user
+    const currentUserResult = await pool.query("SELECT * FROM users WHERE id = $1 AND admin_id = $2", [id, adminId]);
     
     if (currentUserResult.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "User not found or unauthorized" });
     }
 
     const currentUser = currentUserResult.rows[0];
@@ -98,12 +109,12 @@ const updateUser = async (req, res) => {
       let result;
 
       if (isMovingToCompleted && wasNotCompleted) {
-        // Move user to completed_users table
+        // Move user to completed_users table - INCLUDE ADMIN_ID
         await pool.query(
-          "INSERT INTO completed_users (name, email, risk_level, plan_status, counsellor_id, session_time, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-          [currentUser.name, currentUser.email, risk_level || currentUser.risk_level, 'completed', counsellor_id || currentUser.counsellor_id, session_time || currentUser.session_time, currentUser.created_at, new Date()]
+          "INSERT INTO completed_users (name, email, risk_level, plan_status, counsellor_id, admin_id, session_time, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+          [currentUser.name, currentUser.email, risk_level || currentUser.risk_level, 'completed', counsellor_id || currentUser.counsellor_id, adminId, session_time || currentUser.session_time, currentUser.created_at, new Date()]
         );
-        console.log(`✅ User moved to completed_users: ${id}`);
+        console.log(`✅ User moved to completed_users: ${id} (Admin: ${adminId})`);
 
         // Delete user from users table
         await pool.query("DELETE FROM users WHERE id = $1", [id]);
@@ -133,8 +144,8 @@ const updateUser = async (req, res) => {
       } else {
         // Regular update
         result = await pool.query(
-          "UPDATE users SET name = $1, email = $2, risk_level = $3, plan_status = $4, counsellor_id = $5, session_time = $6, updated_at = NOW() WHERE id = $7 RETURNING *",
-          [name, email, risk_level, plan_status, counsellor_id, session_time, id]
+          "UPDATE users SET name = $1, email = $2, risk_level = $3, plan_status = $4, counsellor_id = $5, session_time = $6, updated_at = NOW() WHERE id = $7 AND admin_id = $8 RETURNING *",
+          [name, email, risk_level, plan_status, counsellor_id, session_time, id, adminId]
         );
         result = result.rows[0];
       }
@@ -142,8 +153,11 @@ const updateUser = async (req, res) => {
       // Commit transaction
       await pool.query("COMMIT");
 
-      // Clear cache when user is updated
-      await deleteCache(CACHE_KEYS.USERS);
+      // Clear cache for this admin's users and completed_users
+      const userCacheKey = `${CACHE_KEYS.USERS}:admin:${adminId}`;
+      const completedCacheKey = `${CACHE_KEYS.COMPLETED_USERS}:admin:${adminId}`;
+      await deleteCache(userCacheKey);
+      await deleteCache(completedCacheKey);
       await deleteCache(CACHE_KEYS.COUNSELLORS);
 
       console.log(`✅ User updated: ${id} (completed: ${isMovingToCompleted && wasNotCompleted})`);
@@ -161,13 +175,14 @@ const updateUser = async (req, res) => {
 // DELETE user
 const deleteUser = async (req, res) => {
   try {
+    const adminId = req.admin.id;
     const { id } = req.params;
 
-    // Get user to check if they have an assigned counsellor
-    const userResult = await pool.query("SELECT counsellor_id FROM users WHERE id = $1", [id]);
+    // Get user to check if they have an assigned counsellor and verify admin owns this user
+    const userResult = await pool.query("SELECT counsellor_id FROM users WHERE id = $1 AND admin_id = $2", [id, adminId]);
     
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "User not found or unauthorized" });
     }
 
     const counsellorId = userResult.rows[0].counsellor_id;
@@ -186,7 +201,7 @@ const deleteUser = async (req, res) => {
       }
 
       // Delete the user
-      const result = await pool.query("DELETE FROM users WHERE id = $1 RETURNING *", [id]);
+      const result = await pool.query("DELETE FROM users WHERE id = $1 AND admin_id = $2 RETURNING *", [id, adminId]);
 
       // Commit transaction
       await pool.query("COMMIT");

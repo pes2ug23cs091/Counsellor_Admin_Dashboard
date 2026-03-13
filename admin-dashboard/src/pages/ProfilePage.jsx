@@ -1,19 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : "/api";
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+};
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState({
-    name: 'Admin User',
-    email: 'admin@gmail.com',
-    phone: '+918310802626',
-    department: 'System Administration',
-    role: 'Super Admin',
-    joinDate: 'January 15, 2024',
-    lastLogin: 'Today at 10:30 AM',
-    status: 'Active',
+    username: 'Admin User',
+    email: 'admin@example.com',
+    phone: '',
+    role: 'admin',
+    status: 'active',
+    created_at: new Date().toISOString(),
   });
 
   const [formData, setFormData] = useState(profile);
+
+  // Fetch admin profile on component mount
+  useEffect(() => {
+    fetchAdminProfile();
+  }, []);
+
+  const fetchAdminProfile = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        headers: getAuthHeaders()
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch profile');
+      
+      const data = await response.json();
+      setProfile(data);
+      setFormData(data);
+      console.log('✅ Profile loaded:', data.username);
+    } catch (error) {
+      console.error('❌ Error fetching profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -34,45 +70,71 @@ export default function ProfilePage() {
     setFormData({ ...formData, [name]: value });
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="page-container">
+        <div style={{ textAlign: 'center', padding: '40px' }}>Loading profile...</div>
+      </div>
+    );
+  }
+
+  const getInitials = (username) => {
+    return (username || 'A').substring(0, 2).toUpperCase();
+  };
+
   return (
     <div className="page-container">
       <div className="page-header">
         <div>
           <h1 className="page-header-title">Admin Profile</h1>
-          <p className="page-header-desc">Manage your profile information and preferences</p>
+          <p className="page-header-desc">Manage your profile information</p>
         </div>
       </div>
 
       <div className="profile-wrapper">
         <div className="profile-card">
           <div className="profile-header">
-            <div className="profile-avatar">A</div>
+            <div className="profile-avatar">{getInitials(profile.username)}</div>
             <div className="profile-info">
-              <h2>{profile.name}</h2>
+              <h2>{profile.username}</h2>
               <p className="profile-role">{profile.role}</p>
-              <span className="profile-status-badge">{profile.status}</span>
+              <span className="profile-status-badge" style={{
+                backgroundColor: profile.status === 'active' ? '#d1fae5' : '#fee2e2',
+                color: profile.status === 'active' ? '#065f46' : '#991b1b'
+              }}>
+                {profile.status === 'active' ? '🟢 Active' : '🔴 Inactive'}
+              </span>
             </div>
           </div>
 
           <div className="profile-stats">
             <div className="stat-item">
-              <p className="stat-label">Department</p>
-              <p className="stat-value">{profile.department}</p>
+              <p className="stat-label">Email</p>
+              <p className="stat-value">{profile.email}</p>
             </div>
             <div className="stat-item">
               <p className="stat-label">Member Since</p>
-              <p className="stat-value">{profile.joinDate}</p>
+              <p className="stat-value">{formatDate(profile.created_at)}</p>
             </div>
             <div className="stat-item">
-              <p className="stat-label">Last Login</p>
-              <p className="stat-value">{profile.lastLogin}</p>
+              <p className="stat-label">Account Type</p>
+              <p className="stat-value">{profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}</p>
             </div>
           </div>
         </div>
 
         <div className="profile-details-card">
           <div className="card-header">
-            <h3>Personal Information</h3>
+            <h3>Account Information</h3>
             {!isEditing && (
               <button className="btn btn-secondary" onClick={handleEdit}>
                 ✏️ Edit Profile
@@ -83,14 +145,15 @@ export default function ProfilePage() {
           {isEditing ? (
             <form className="profile-form">
               <div className="form-group">
-                <label htmlFor="name">Full Name</label>
+                <label htmlFor="username">Username</label>
                 <input
                   type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
+                  id="username"
+                  name="username"
+                  value={formData.username}
                   onChange={handleInputChange}
                   className="form-input"
+                  disabled
                 />
               </div>
 

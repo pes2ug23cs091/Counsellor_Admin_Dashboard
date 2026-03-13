@@ -4,19 +4,23 @@ const { getCache, setCache, deleteCache, CACHE_KEYS, CACHE_TTL } = require("../u
 // GET all counsellors
 const getCounsellors = async (req, res) => {
   try {
-    // Try to get from cache first
-    const cachedCounsellors = await getCache(CACHE_KEYS.COUNSELLORS);
+    const adminId = req.admin.id;
+    
+    // Try to get from cache first (include admin_id in cache key for isolation)
+    const cacheKey = `${CACHE_KEYS.COUNSELLORS}:admin:${adminId}`;
+    const cachedCounsellors = await getCache(cacheKey);
     if (cachedCounsellors) {
       return res.json(cachedCounsellors);
     }
 
-    // If not in cache, query database
+    // If not in cache, query database - FILTER BY ADMIN_ID
     const result = await pool.query(
-      "SELECT id, name, email, specialty, availability, phone, status, assigned_users, pending_reviews, created_at, updated_at FROM counsellors ORDER BY created_at DESC"
+      "SELECT id, name, email, specialty, availability, phone, status, assigned_users, pending_reviews, admin_id, created_at, updated_at FROM counsellors WHERE admin_id = $1 ORDER BY created_at DESC",
+      [adminId]
     );
     
     // Store in cache
-    await setCache(CACHE_KEYS.COUNSELLORS, result.rows, CACHE_TTL.COUNSELLORS);
+    await setCache(cacheKey, result.rows, CACHE_TTL.COUNSELLORS);
     
     res.json(result.rows);
   } catch (error) {
@@ -28,6 +32,7 @@ const getCounsellors = async (req, res) => {
 // CREATE counsellor
 const createCounsellor = async (req, res) => {
   try {
+    const adminId = req.admin.id;
     const { name, email, specialty, availability, phone, status } = req.body;
 
     if (!name || !specialty) {
@@ -38,14 +43,15 @@ const createCounsellor = async (req, res) => {
     const counsellorEmail = email || `${name.toLowerCase().replace(/\s+/g, '.')}.counsellor@example.com`;
 
     const result = await pool.query(
-      "INSERT INTO counsellors (name, email, specialty, availability, phone, status, assigned_users, pending_reviews, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW()) RETURNING *",
-      [name, counsellorEmail, specialty, availability || "Available", phone || "", status || "active", 0, 0]
+      "INSERT INTO counsellors (name, email, specialty, availability, phone, status, assigned_users, pending_reviews, admin_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW()) RETURNING *",
+      [name, counsellorEmail, specialty, availability || "Available", phone || "", status || "active", 0, 0, adminId]
     );
 
-    // Clear cache when new counsellor is created
-    await deleteCache(CACHE_KEYS.COUNSELLORS);
+    // Clear cache for this admin's counsellors
+    const cacheKey = `${CACHE_KEYS.COUNSELLORS}:admin:${adminId}`;
+    await deleteCache(cacheKey);
 
-    console.log(`✅ Counsellor created: ${name}`);
+    console.log(`✅ Counsellor created: ${name} (Admin: ${adminId})`);
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error("❌ Error creating counsellor:", error.message);
@@ -56,12 +62,13 @@ const createCounsellor = async (req, res) => {
 // UPDATE counsellor
 const updateCounsellor = async (req, res) => {
   try {
+    const adminId = req.admin.id;
     const { id } = req.params;
     
-    // Get current counsellor
-    const current = await pool.query("SELECT * FROM counsellors WHERE id = $1", [id]);
+    // Get current counsellor and verify admin ownership
+    const current = await pool.query("SELECT * FROM counsellors WHERE id = $1 AND admin_id = $2", [id, adminId]);
     if (current.rows.length === 0) {
-      return res.status(404).json({ error: "Counsellor not found" });
+      return res.status(404).json({ error: "Counsellor not found or unauthorized" });
     }
 
     const counsellor = current.rows[0];
@@ -121,14 +128,20 @@ const updateCounsellor = async (req, res) => {
       return res.json(counsellor);
     }
 
-    // Build dynamic query
-    const query = `UPDATE counsellors SET ${updateFields.join(", ")} WHERE id = $${paramIndex} RETURNING *`;
+    // Build dynamic query - ADD ADMIN_ID CHECK
+    const query = `UPDATE counsellors SET ${updateFields.join(", ")} WHERE id = $${paramIndex} AND admin_id = $${paramIndex + 1} RETURNING *`;
     updateValues.push(id);
+    updateValues.push(adminId);
 
     const result = await pool.query(query, updateValues);
 
-    // Clear cache when counsellor is updated
-    await deleteCache(CACHE_KEYS.COUNSELLORS);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Counsellor not found or unauthorized" });
+    }
+
+    // Clear cache for this admin's counsellors
+    const cacheKey = `${CACHE_KEYS.COUNSELLORS}:admin:${adminId}`;
+    await deleteCache(cacheKey);
 
     console.log(`✅ Counsellor updated: ${id}`, { fields: updateFields });
     res.json(result.rows[0]);
@@ -141,16 +154,18 @@ const updateCounsellor = async (req, res) => {
 // DELETE counsellor
 const deleteCounsellor = async (req, res) => {
   try {
+    const adminId = req.admin.id;
     const { id } = req.params;
 
-    const result = await pool.query("DELETE FROM counsellors WHERE id = $1 RETURNING *", [id]);
+    const result = await pool.query("DELETE FROM counsellors WHERE id = $1 AND admin_id = $2 RETURNING *", [id, adminId]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: "Counsellor not found" });
+      return res.status(404).json({ error: "Counsellor not found or unauthorized" });
     }
 
-    // Clear cache when counsellor is deleted
-    await deleteCache(CACHE_KEYS.COUNSELLORS);
+    // Clear cache for this admin's counsellors
+    const cacheKey = `${CACHE_KEYS.COUNSELLORS}:admin:${adminId}`;
+    await deleteCache(cacheKey);
 
     console.log(`✅ Counsellor deleted: ${id}`);
     res.json({ message: "Counsellor deleted successfully", counsellor: result.rows[0] });

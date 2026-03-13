@@ -28,12 +28,24 @@ const initializeDatabase = async () => {
         risk_level VARCHAR(50) DEFAULT 'medium',
         plan_status VARCHAR(50) DEFAULT 'active',
         counsellor_id INTEGER,
+        admin_id INTEGER,
         session_time VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
       );
     `);
     console.log("✅ Users table created/verified");
+
+    // Add admin_id column if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_id INTEGER;
+      `);
+      console.log("✅ Users admin_id column verified");
+    } catch (err) {
+      // Column might already exist, silently continue
+    }
 
     // Create counsellors table
     await pool.query(`
@@ -100,17 +112,29 @@ const initializeDatabase = async () => {
       CREATE TABLE IF NOT EXISTS completed_users (
         id SERIAL PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
+        email VARCHAR(255) NOT NULL,
         risk_level VARCHAR(50) DEFAULT 'medium',
         plan_status VARCHAR(50) DEFAULT 'completed',
         counsellor_id INTEGER,
+        admin_id INTEGER,
         session_time VARCHAR(100),
         completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE
       );
     `);
     console.log("✅ Completed Users table created/verified");
+
+    // Add admin_id column if it doesn't exist
+    try {
+      await pool.query(`
+        ALTER TABLE completed_users ADD COLUMN IF NOT EXISTS admin_id INTEGER;
+      `);
+      console.log("✅ Completed Users admin_id column verified");
+    } catch (err) {
+      // Column might already exist, silently continue
+    }
 
     // Create index for foreign key
     await pool.query(`
