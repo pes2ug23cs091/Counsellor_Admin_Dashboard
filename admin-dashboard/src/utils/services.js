@@ -1,4 +1,9 @@
-const API_BASE_URL = "/api";
+// Use environment variable for API URL, fallback to relative path for local dev
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : "/api";
+
+console.log("🔗 API Base URL:", API_BASE_URL);
 
 // Helper function to generate avatar color
 const generateColor = (id) => {
