@@ -30,38 +30,52 @@ export default function UsersPage({ assignments = {}, onAssign = () => {} }) {
   const [riskFilter, setRiskFilter] = useState("All");
   const [planFilter, setPlanFilter] = useState("All");
 
-  // Fetch data from backend
+  // Refetch data function
+  const refetchData = async () => {
+    setLoading(true);
+    try {
+      const [usersData, counsellorsData] = await Promise.all([
+        getUsers(),
+        getCounsellors(),
+      ]);
+      // Transform raw API data to match frontend format
+      const transformedUsers = usersData.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        riskLevel: user.risk_level ? user.risk_level.charAt(0).toUpperCase() + user.risk_level.slice(1) : "Low",
+        counsellor: user.counsellor_id ? counsellorsData.find(c => c.id === user.counsellor_id)?.name || "Unassigned" : "Unassigned",
+        sessionTime: user.session_time || "Not Scheduled",
+        planStatus: user.plan_status ? user.plan_status.charAt(0).toUpperCase() + user.plan_status.slice(1) : "Active",
+        joinDate: new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
+        avatar: user.name.split(" ").map(word => word[0]).join("").toUpperCase(),
+        color: "#6366f1",
+      }));
+      setUsers(transformedUsers);
+      setCounsellors(counsellorsData);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch data on component mount
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [usersData, counsellorsData] = await Promise.all([
-          getUsers(),
-          getCounsellors(),
-        ]);
-        // Transform raw API data to match frontend format
-        const transformedUsers = usersData.map((user) => ({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          riskLevel: user.risk_level ? user.risk_level.charAt(0).toUpperCase() + user.risk_level.slice(1) : "Low",
-          counsellor: user.counsellor_id ? counsellorsData.find(c => c.id === user.counsellor_id)?.name || "Unassigned" : "Unassigned",
-          sessionTime: user.session_time || "Not Scheduled",
-          planStatus: user.plan_status ? user.plan_status.charAt(0).toUpperCase() + user.plan_status.slice(1) : "Active",
-          joinDate: new Date(user.created_at).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }),
-          avatar: user.name.split(" ").map(word => word[0]).join("").toUpperCase(),
-          color: "#6366f1",
-        }));
-        setUsers(transformedUsers);
-        setCounsellors(counsellorsData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    refetchData();
   }, []);
+
+  // Refetch data when window gains focus (tab becomes visible)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log("📱 Page regained focus - refetching data");
+      refetchData();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
 
   const filtered = useMemo(() => {
     return users.filter((u) => {
@@ -182,6 +196,7 @@ export default function UsersPage({ assignments = {}, onAssign = () => {} }) {
       
       await assignCounsellor(userId, counsellorId, sessionTiming);
       
+      // Update local state for immediate UI feedback
       setUsers((prev) =>
         prev.map((u) => 
           u.id === userId 
@@ -193,6 +208,13 @@ export default function UsersPage({ assignments = {}, onAssign = () => {} }) {
             : u
         )
       );
+      
+      // Refetch fresh data from backend to ensure consistency
+      // Small delay to allow backend cache clearing to complete
+      setTimeout(() => {
+        refetchData();
+      }, 500);
+      
       setModalOpen(false);
       setSelectedUser(null);
     } catch (error) {

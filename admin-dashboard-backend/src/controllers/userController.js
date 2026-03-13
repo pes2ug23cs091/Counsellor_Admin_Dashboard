@@ -226,16 +226,20 @@ const assignCounsellor = async (req, res) => {
   try {
     const { id } = req.params;
     const { counsellor_id, session_time } = req.body;
+    const adminId = req.admin.id; // Extract admin from JWT token via middleware
 
     if (!counsellor_id) {
       return res.status(400).json({ error: "Counsellor ID is required" });
     }
 
-    // Get current user to check if they already have a counsellor
-    const currentUserResult = await pool.query("SELECT counsellor_id FROM users WHERE id = $1", [id]);
+    // Get current user to check if they already have a counsellor AND verify admin ownership
+    const currentUserResult = await pool.query(
+      "SELECT counsellor_id FROM users WHERE id = $1 AND admin_id = $2", 
+      [id, adminId]
+    );
     
     if (currentUserResult.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ error: "User not found or unauthorized" });
     }
 
     const oldCounsellorId = currentUserResult.rows[0].counsellor_id;
@@ -262,18 +266,20 @@ const assignCounsellor = async (req, res) => {
         console.log(`📈 Incremented assigned_users for counsellor ${counsellor_id}`);
       }
 
-      // Update user with new counsellor
+      // Update user with new counsellor (include admin_id in WHERE clause for safety)
       const result = await pool.query(
-        "UPDATE users SET counsellor_id = $1, session_time = $2, updated_at = NOW() WHERE id = $3 RETURNING *",
-        [counsellor_id, session_time || null, id]
+        "UPDATE users SET counsellor_id = $1, session_time = $2, updated_at = NOW() WHERE id = $3 AND admin_id = $4 RETURNING *",
+        [counsellor_id, session_time || null, id, adminId]
       );
 
       // Commit transaction
       await pool.query("COMMIT");
 
-      // Clear cache for both users and counsellors (since assigned_users changed)
-      await deleteCache(CACHE_KEYS.USERS);
-      await deleteCache(CACHE_KEYS.COUNSELLORS);
+      // Clear cache for this admin's users and counsellors (admin-specific cache keys)
+      const userCacheKey = `${CACHE_KEYS.USERS}:admin:${adminId}`;
+      const counsellorCacheKey = `${CACHE_KEYS.COUNSELLORS}:admin:${adminId}`;
+      await deleteCache(userCacheKey);
+      await deleteCache(counsellorCacheKey);
 
       console.log(`✅ Counsellor ${counsellor_id} assigned to user ${id}, session time: ${session_time || "Not set"}`);
       res.json(result.rows[0]);
