@@ -1,4 +1,8 @@
-require("dotenv").config();
+// Load dotenv only in development
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config();
+}
+
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");

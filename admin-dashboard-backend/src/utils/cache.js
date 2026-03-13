@@ -1,7 +1,13 @@
 const redis = require("redis");
 
-// Use Docker service name for internal network resolution
-const redisUrl = process.env.REDIS_URL || `redis://admin-dashboard-redis:6379`;
+// Support multiple Redis URL formats:
+// 1. REDIS_URL from environment (Render, Upstash, etc.)
+// 2. REDIS_HOST:REDIS_PORT for local development
+// 3. Default to Docker service name for local Docker
+const redisUrl = process.env.REDIS_URL || 
+  (process.env.REDIS_HOST && process.env.REDIS_PORT 
+    ? `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+    : `redis://admin-dashboard-redis:6379`);
 
 // Create Redis client
 const redisClient = redis.createClient({
