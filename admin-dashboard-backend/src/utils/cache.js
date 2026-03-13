@@ -9,18 +9,20 @@ const redisUrl = process.env.REDIS_URL ||
     ? `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
     : `redis://admin-dashboard-redis:6379`);
 
-// Create Redis client
+// Create Redis client with proper TLS support for Upstash
 const redisClient = redis.createClient({
   url: redisUrl,
   socket: {
+    tls: process.env.REDIS_URL ? true : false, // Enable TLS for cloud URLs (Upstash)
     reconnectStrategy: (retries) => {
       if (retries > 5) {
         console.log("❌ Redis max retries exceeded - caching disabled");
-        return false; // Don't retry after this
+        return false;
       }
-      return Math.min(retries * 100, 1000);
+      return Math.min(retries * 100, 3000);
     },
-    connectTimeout: 10000,
+    connectTimeout: 15000,
+    keepAlive: 30000,
   }
 });
 
