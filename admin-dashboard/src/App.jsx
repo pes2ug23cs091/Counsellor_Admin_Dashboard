@@ -36,11 +36,17 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('adminUser');
-    setAdminUser(null);
-    setIsAuthenticated(false);
-    setCurrentPage('dashboard');
+    // Show confirmation dialog before logging out
+    const confirmLogout = window.confirm('Are you sure you want to logout?');
+    
+    if (confirmLogout) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('adminUser');
+      setAdminUser(null);
+      setIsAuthenticated(false);
+      setCurrentPage('dashboard');
+      console.log('✅ Logged out successfully');
+    }
   };
 
   if (isLoading) {

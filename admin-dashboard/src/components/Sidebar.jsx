@@ -54,16 +54,28 @@ export default function Sidebar({ currentPage, onNavigate, adminUser, onLogout }
       </nav>
 
       <div className="sidebar-footer">
-        <div 
+        <button
           className="user-info"
-          style={{ background: 'none', border: 'none', cursor: 'default', width: '100%' }}
+          onClick={() => onNavigate('profile')}
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            cursor: 'pointer', 
+            width: '100%',
+            padding: '10px',
+            borderRadius: '8px',
+            transition: 'background-color 0.2s ease'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+          title="Click to view profile"
         >
           <div className="user-avatar">{getInitials(adminUser?.username)}</div>
           <div className="user-details">
             <p className="user-name">{adminUser?.username || 'Admin'}</p>
             <p className="user-role">{adminUser?.role || 'Admin'}</p>
           </div>
-        </div>
+        </button>
         <button
           className="logout-btn"
           onClick={onLogout}

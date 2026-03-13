@@ -43,7 +43,7 @@ export default function DashboardPage() {
         .filter(u => {
           // Check if user has active status (handle various formats)
           const status = u.plan_status ? String(u.plan_status).toLowerCase() : '';
-          const isActive = status === 'active' || status === 'pending' || status === 'approved';
+          const isActive = status === 'active';
           
           // Check if user has assigned counsellor
           const hasAssignedCounsellor = u.counsellor_id && modelMap[u.counsellor_id];
