@@ -12,6 +12,7 @@ const usersRouter = require("./routes/users");
 const counsellorsRouter = require("./routes/counsellors");
 const healthRouter = require("./routes/health");
 const authRouter = require("./routes/auth");
+const cleanupRouter = require("./routes/cleanup");
 
 // Import middleware
 const authMiddleware = require("./middleware/authMiddleware");
@@ -32,6 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter); // Auth routes (no protection)
+app.use("/api/cleanup", cleanupRouter); // Cleanup routes (admin only)
 
 // Protected routes (require authentication)
 app.use("/api/users", authMiddleware, usersRouter);
