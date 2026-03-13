@@ -116,14 +116,20 @@ export default function UsersPage({ assignments = {}, onAssign = () => {} }) {
       
       await updateUser(userId, updateData);
       
-      // Update local state
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === userId
-            ? { ...u, planStatus: newStatus }
-            : u
-        )
-      );
+      // If status is being changed to "completed", remove user from list
+      if (newStatus.toLowerCase() === 'completed') {
+        setUsers((prev) => prev.filter((u) => u.id !== userId));
+        alert('✅ User marked as completed and moved to Completed Users list!');
+      } else {
+        // Update local state for other status changes
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId
+              ? { ...u, planStatus: newStatus }
+              : u
+          )
+        );
+      }
     } catch (error) {
       console.error("Failed to update plan status:", error);
       alert("Failed to update plan status. Please try again.");
@@ -255,7 +261,7 @@ export default function UsersPage({ assignments = {}, onAssign = () => {} }) {
               >
                 <option value="All">All Statuses</option>
                 <option value="Active">Active</option>
-                <option value="Expired">Expired</option>
+                <option value="Pending">Pending</option>
               </select>
             </div>
             <span className="results-count">

@@ -48,6 +48,7 @@ redisClient.connect().catch((err) => {
 // Cache keys
 const CACHE_KEYS = {
   USERS: "cache:users",
+  COMPLETED_USERS: "cache:completed_users",
   COUNSELLORS: "cache:counsellors",
   USER: (id) => `cache:user:${id}`,
   COUNSELLOR: (id) => `cache:counsellor:${id}`,

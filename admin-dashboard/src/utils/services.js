@@ -5,6 +5,15 @@ const API_BASE_URL = import.meta.env.VITE_API_URL
 
 console.log("🔗 API Base URL:", API_BASE_URL);
 
+// Helper function to get authorization headers with JWT token
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
+};
+
 // Helper function to generate avatar color
 const generateColor = (id) => {
   const colors = ["#4F46E5", "#0891b2", "#059669", "#7c3aed", "#be123c", "#d97706"];
@@ -22,8 +31,12 @@ const getInitials = (name) => {
 
 export const getDashboardMetrics = async () => {
   try {
-    const usersResponse = await fetch(`${API_BASE_URL}/users`);
-    const counsellorsResponse = await fetch(`${API_BASE_URL}/counsellors`);
+    const usersResponse = await fetch(`${API_BASE_URL}/users`, {
+      headers: getAuthHeaders()
+    });
+    const counsellorsResponse = await fetch(`${API_BASE_URL}/counsellors`, {
+      headers: getAuthHeaders()
+    });
     
     const users = await usersResponse.json();
     const counsellors = await counsellorsResponse.json();
@@ -61,7 +74,9 @@ export const getDashboardMetrics = async () => {
 
 export const getUsers = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/users`);
+    const response = await fetch(`${API_BASE_URL}/users`, {
+      headers: getAuthHeaders()
+    });
     const data = await response.json();
     return data;
   } catch (error) {
@@ -70,9 +85,24 @@ export const getUsers = async () => {
   }
 };
 
+export const getCompletedUsers = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/completed-users`, {
+      headers: getAuthHeaders()
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error fetching completed users:", error);
+    return [];
+  }
+};
+
 export const getCounsellors = async () => {
   try {
-    const response = await fetch(`${API_BASE_URL}/counsellors`);
+    const response = await fetch(`${API_BASE_URL}/counsellors`, {
+      headers: getAuthHeaders()
+    });
     const data = await response.json();
     return data;
   } catch (error) {
@@ -86,9 +116,7 @@ export const createUser = async (userData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         name: userData.name,
         email: userData.email,
@@ -117,9 +145,7 @@ export const updateUser = async (userId, userData) => {
     }
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(body),
     });
     if (!response.ok) throw new Error("Failed to update user");
@@ -135,6 +161,7 @@ export const deleteUser = async (userId) => {
   try {
     const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
       method: "DELETE",
+      headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error("Failed to delete user");
     return await response.json();
@@ -149,9 +176,7 @@ export const createCounsellor = async (counsellorData) => {
   try {
     const response = await fetch(`${API_BASE_URL}/counsellors`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         name: counsellorData.name,
         specialty: counsellorData.specialty,
@@ -183,9 +208,7 @@ export const updateCounsellor = async (counsellorId, counsellorData) => {
 
     const response = await fetch(`${API_BASE_URL}/counsellors/${counsellorId}`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(body),
     });
     if (!response.ok) throw new Error("Failed to update counsellor");
@@ -201,6 +224,7 @@ export const deleteCounsellor = async (counsellorId) => {
   try {
     const response = await fetch(`${API_BASE_URL}/counsellors/${counsellorId}`, {
       method: "DELETE",
+      headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error("Failed to delete counsellor");
     return await response.json();
@@ -221,9 +245,7 @@ export const assignCounsellor = async (userId, counsellorId, sessionTiming) => {
     }
     const response = await fetch(`${API_BASE_URL}/users/${userId}/assign-counsellor`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(body),
     });
     if (!response.ok) throw new Error("Failed to assign counsellor");

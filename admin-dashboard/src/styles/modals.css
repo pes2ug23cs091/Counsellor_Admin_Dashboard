@@ -317,3 +317,48 @@
     max-height: 250px;
   }
 }
+
+/* Completed Users Modal */
+.completed-users-modal {
+  max-width: 1000px;
+  width: 95%;
+}
+
+.completed-users-table {
+  max-height: 500px;
+  overflow: auto;
+}
+
+.completed-users-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.completed-users-table thead {
+  background: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.completed-users-table th {
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 600;
+  color: #2c3e50;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.completed-users-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.completed-users-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.completed-users-table tbody tr:last-child td {
+  border-bottom: none;
+}

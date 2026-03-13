@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getDashboardMetrics, getUsers, getCounsellors } from '../utils/services';
+import { getDashboardMetrics, getUsers, getCounsellors, getCompletedUsers } from '../utils/services';
+import CompletedUsersModal from '../components/CompletedUsersModal';
 
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState({
@@ -7,19 +8,30 @@ export default function DashboardPage() {
     activeUsers: 0,
     counsellors: 0,
     pendingReviews: 0,
+    completedUsers: 0,
   });
   const [activeCounsellings, setActiveCounsellings] = useState([]);
+  const [completedUsersList, setCompletedUsersList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [completedUsersModalOpen, setCompletedUsersModalOpen] = useState(false);
 
   const fetchData = async () => {
     try {
       setRefreshing(true);
       const metricsData = await getDashboardMetrics();
-      setMetrics(metricsData);
       
       const usersData = await getUsers();
       const counsellorsData = await getCounsellors();
+      const completedUsersData = await getCompletedUsers();
+      
+      // Set completed users count
+      setMetrics({
+        ...metricsData,
+        completedUsers: completedUsersData.length
+      });
+      
+      setCompletedUsersList(completedUsersData);
       
       const modelMap = {};
       counsellorsData.forEach(c => {
@@ -85,6 +97,7 @@ export default function DashboardPage() {
     { title: 'Active Users', value: metrics.activeUsers, icon: '🟢', color: '#10b981' },
     { title: 'Total Counsellors', value: metrics.counsellors, icon: '🧑‍⚕️', color: '#f59e0b' },
     { title: 'Pending Sessions', value: metrics.pendingReviews, icon: '🔴', color: '#ef4444' },
+    { title: 'Completed Users', value: metrics.completedUsers, icon: '✅', color: '#8b5cf6', hasButton: true },
   ];
 
   const getRiskColor = (level) => {
@@ -113,7 +126,7 @@ export default function DashboardPage() {
 
       <div className="metrics-grid">
         {cards.map((card, idx) => (
-          <div key={idx} className="metric-card">
+          <div key={idx} className="metric-card" style={{ position: 'relative' }}>
             <div className="metric-header">
               <div className="metric-icon" style={{ color: card.color }}>
                 {card.icon}
@@ -121,6 +134,23 @@ export default function DashboardPage() {
               <p className="metric-label">{card.title}</p>
             </div>
             <p className="metric-value">{loading ? '...' : (card.value || 0)}</p>
+            {card.hasButton && (
+              <button
+                className="btn btn-primary"
+                style={{
+                  marginTop: '10px',
+                  width: '100%',
+                  padding: '8px 12px',
+                  fontSize: '12px',
+                  height: 'auto',
+                  minHeight: '32px'
+                }}
+                onClick={() => setCompletedUsersModalOpen(true)}
+                title="View all completed users"
+              >
+                View
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -168,6 +198,12 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      <CompletedUsersModal
+        isOpen={completedUsersModalOpen}
+        completedUsers={completedUsersList}
+        onClose={() => setCompletedUsersModalOpen(false)}
+      />
     </div>
   );
 }

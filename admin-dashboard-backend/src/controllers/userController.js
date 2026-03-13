@@ -25,6 +25,30 @@ const getUsers = async (req, res) => {
   }
 };
 
+// GET all completed users
+const getCompletedUsers = async (req, res) => {
+  try {
+    // Try to get from cache first
+    const cachedCompletedUsers = await getCache(CACHE_KEYS.COMPLETED_USERS);
+    if (cachedCompletedUsers) {
+      return res.json(cachedCompletedUsers);
+    }
+
+    // If not in cache, query database
+    const result = await pool.query(
+      "SELECT id, name, email, risk_level, plan_status, counsellor_id, session_time, completed_at, created_at, updated_at FROM completed_users ORDER BY completed_at DESC"
+    );
+    
+    // Store in cache
+    await setCache(CACHE_KEYS.COMPLETED_USERS, result.rows, CACHE_TTL.USERS);
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error("❌ Error fetching completed users:", error.message);
+    res.status(500).json({ error: "Failed to fetch completed users" });
+  }
+};
+
 // CREATE user
 const createUser = async (req, res) => {
   try {
@@ -56,20 +80,78 @@ const updateUser = async (req, res) => {
     const { id } = req.params;
     const { name, email, risk_level, plan_status, counsellor_id, session_time } = req.body;
 
-    const result = await pool.query(
-      "UPDATE users SET name = $1, email = $2, risk_level = $3, plan_status = $4, counsellor_id = $5, session_time = $6, updated_at = NOW() WHERE id = $7 RETURNING *",
-      [name, email, risk_level, plan_status, counsellor_id, session_time, id]
-    );
-
-    if (result.rows.length === 0) {
+    // Get current user to check if status is being changed to "completed"
+    const currentUserResult = await pool.query("SELECT * FROM users WHERE id = $1", [id]);
+    
+    if (currentUserResult.rows.length === 0) {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Clear cache when user is updated
-    await deleteCache(CACHE_KEYS.USERS);
+    const currentUser = currentUserResult.rows[0];
+    const isMovingToCompleted = plan_status && plan_status.toLowerCase() === 'completed';
+    const wasNotCompleted = !currentUser.plan_status || currentUser.plan_status.toLowerCase() !== 'completed';
 
-    console.log(`✅ User updated: ${id}`);
-    res.json(result.rows[0]);
+    // Start transaction
+    await pool.query("BEGIN");
+
+    try {
+      let result;
+
+      if (isMovingToCompleted && wasNotCompleted) {
+        // Move user to completed_users table
+        await pool.query(
+          "INSERT INTO completed_users (name, email, risk_level, plan_status, counsellor_id, session_time, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+          [currentUser.name, currentUser.email, risk_level || currentUser.risk_level, 'completed', counsellor_id || currentUser.counsellor_id, session_time || currentUser.session_time, currentUser.created_at, new Date()]
+        );
+        console.log(`✅ User moved to completed_users: ${id}`);
+
+        // Delete user from users table
+        await pool.query("DELETE FROM users WHERE id = $1", [id]);
+        console.log(`🗑️  User deleted from users table: ${id}`);
+
+        // If user had an assigned counsellor, decrement their assigned_users and update pending_reviews
+        if (currentUser.counsellor_id) {
+          await pool.query(
+            "UPDATE counsellors SET assigned_users = GREATEST(0, assigned_users - 1), pending_reviews = GREATEST(0, pending_reviews - 1), updated_at = NOW() WHERE id = $1",
+            [currentUser.counsellor_id]
+          );
+          console.log(`📉 Decremented assigned_users and pending_reviews for counsellor ${currentUser.counsellor_id}`);
+        }
+
+        result = {
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          risk_level: risk_level || currentUser.risk_level,
+          plan_status: 'completed',
+          counsellor_id: counsellor_id || currentUser.counsellor_id,
+          session_time: session_time || currentUser.session_time,
+          created_at: currentUser.created_at,
+          updated_at: new Date(),
+          completed: true
+        };
+      } else {
+        // Regular update
+        result = await pool.query(
+          "UPDATE users SET name = $1, email = $2, risk_level = $3, plan_status = $4, counsellor_id = $5, session_time = $6, updated_at = NOW() WHERE id = $7 RETURNING *",
+          [name, email, risk_level, plan_status, counsellor_id, session_time, id]
+        );
+        result = result.rows[0];
+      }
+
+      // Commit transaction
+      await pool.query("COMMIT");
+
+      // Clear cache when user is updated
+      await deleteCache(CACHE_KEYS.USERS);
+      await deleteCache(CACHE_KEYS.COUNSELLORS);
+
+      console.log(`✅ User updated: ${id} (completed: ${isMovingToCompleted && wasNotCompleted})`);
+      res.json(result);
+    } catch (txError) {
+      await pool.query("ROLLBACK");
+      throw txError;
+    }
   } catch (error) {
     console.error("❌ Error updating user:", error.message);
     res.status(500).json({ error: "Failed to update user" });
@@ -192,6 +274,7 @@ const assignCounsellor = async (req, res) => {
 
 module.exports = {
   getUsers,
+  getCompletedUsers,
   createUser,
   updateUser,
   deleteUser,
