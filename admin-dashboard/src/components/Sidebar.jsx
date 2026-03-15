@@ -2,9 +2,9 @@ import { useState } from 'react';
 
 export default function Sidebar({ currentPage, onNavigate, adminUser, onLogout }) {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '' },
-    { id: 'users', label: 'Users', icon: '' },
-    { id: 'counsellors', label: 'Counsellors', icon: '' },
+    { id: 'dashboard', label: 'Dashboard', icon: '.🖥️' },
+    { id: 'users', label: 'Users', icon: '👥' },
+    { id: 'counsellors', label: 'Counsellors', icon: '🗣️' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
