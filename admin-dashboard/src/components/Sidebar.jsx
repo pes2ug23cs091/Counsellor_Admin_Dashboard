@@ -2,9 +2,9 @@ import { useState } from 'react';
 
 export default function Sidebar({ currentPage, onNavigate, adminUser, onLogout }) {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'users', label: 'Users', icon: '👥' },
-    { id: 'counsellors', label: 'Counsellors', icon: '💼' },
+    { id: 'dashboard', label: 'Dashboard', icon: '' },
+    { id: 'users', label: 'Users', icon: '' },
+    { id: 'counsellors', label: 'Counsellors', icon: '' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ];
 
@@ -15,10 +15,9 @@ export default function Sidebar({ currentPage, onNavigate, adminUser, onLogout }
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <div className="logo">📊</div>
+        <div className="logo"></div>
         <div className="brand">
-          <h2>MonitorAI</h2>
-          <p>Admin Console</p>
+          <h2>Admin Dashboard </h2>
         </div>
       </div>
 
@@ -95,7 +94,7 @@ export default function Sidebar({ currentPage, onNavigate, adminUser, onLogout }
           onMouseEnter={(e) => e.target.style.backgroundColor = '#fecaca'}
           onMouseLeave={(e) => e.target.style.backgroundColor = '#fee2e2'}
         >
-          🚪 Logout
+           Logout
         </button>
       </div>
     </aside>
