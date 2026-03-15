@@ -2,7 +2,7 @@
 
 A comprehensive full-stack admin dashboard for monitoring users and counsellors with JWT authentication, multi-tenant data isolation, Redis caching, and real-time metrics.
 
-## 🎯 Project Overview
+## Project Overview
 
 **Objective**: Build an administrative dashboard that allows admins to:
 - Monitor users with different risk levels
@@ -13,7 +13,7 @@ A comprehensive full-stack admin dashboard for monitoring users and counsellors 
 
 **Problem Solved**: Organizations need a centralized platform to manage user-counsellor relationships, track user risk levels, and monitor session progress without data leakage between different admin accounts.
 
-## 🛠️ Approach & Methodology
+## Approach & Methodology
 
 **Development Approach**: 
 - Agile feature-driven development
@@ -38,7 +38,7 @@ A comprehensive full-stack admin dashboard for monitoring users and counsellors 
 - Multi-tenant with admin_id filtering on all queries
 - Performance through intelligent caching
 
-## 🏗️ Architecture Explanation
+##  Architecture Explanation
 
 ### System Architecture
 ```
@@ -112,9 +112,9 @@ completed_users - admin_id FK
 - ✅ **Data Isolation**: Every query filters by `admin_id`
 - ✅ **Password Hashing**: bcryptjs with 10 salt rounds
 - ✅ **Cache Isolation**: Keys like `cache:users:admin:{adminId}`
-- ✅ **Ownership Verification**: Updates verified with `WHERE id = $1 AND admin_id = $2`
+- ✅ **Ownership Verification**: Updates verified with `WHERE id = 1 AND admin_id = 2`
 
-## 📦 Setup Process & Installation
+##  Setup Process & Installation
 
 ### Prerequisites
 ```
@@ -205,7 +205,7 @@ Email: admin@counsellor.com
 
 ---
 
-## 🎮 Usage Instructions
+##  Usage Instructions
 
 ### 1. Login
 - Navigate to http://localhost:3000 (or deployment link)
@@ -247,7 +247,7 @@ Email: admin@counsellor.com
 
 ---
 
-## 📊 Output/Visualization
+##  Output/Visualization
 
 ### Dashboard Metrics
 ```
@@ -257,7 +257,7 @@ Email: admin@counsellor.com
 └─────────────┴─────────────┴─────────────┘
 
 ┌─────────────────────┬──────────────────┐
-│ Pending Reviews     │ Completed Users  │
+│ Pending Sessions    │ Completed Users  │
 │        15           │        23        │
 └─────────────────────┴──────────────────┘
 ```
@@ -315,7 +315,7 @@ Counsellor_Admin_Dashboard/
 
 ---
 
-## 🎯 Design Decisions & Tradeoffs
+##  Design Decisions & Tradeoffs
 
 ### 1. **Express.js vs NestJS**
 - **Decision**: Express.js
@@ -359,7 +359,7 @@ Counsellor_Admin_Dashboard/
 
 ---
 
-## 🧪 Testing
+##  Testing
 
 ### Backend Tests
 ```bash
@@ -380,7 +380,7 @@ npm test
 
 ---
 
-## 🚀 API Endpoints
+##  API Endpoints
 
 ### Authentication (Public)
 ```
@@ -413,7 +413,7 @@ GET    /api/health/database         - Database connectivity
 
 ---
 
-## 🐳 Live Deployment
+##  Live Deployment
 
 ### Available At
 - **Frontend**: https://counsellor-admin-frontend.onrender.com
@@ -428,7 +428,7 @@ GET    /api/health/database         - Database connectivity
 
 ---
 
-## 🏆 Features Implemented
+##  Features Implemented
 
 ### Core Features ✅
 - ✅ Dashboard with 5 key metrics
@@ -460,7 +460,7 @@ GET    /api/health/database         - Database connectivity
 
 ---
 
-## 📞 Troubleshooting
+## Troubleshooting
 
 ### Port Already in Use
 ```bash
@@ -500,33 +500,3 @@ docker-compose logs -f
 ```
 
 ---
-
-## 📋 Submission Checklist
-
-- ✅ Complete source code (Frontend + Backend)
-- ✅ Docker configuration (docker-compose.yml + Dockerfiles)
-- ✅ Configuration files (.env.example, package.json)
-- ✅ Database schema and initialization
-- ✅ Tests and test infrastructure
-- ✅ Comprehensive documentation (README.md)
-- ✅ GitHub repository (Private with access to interns-V7)
-- ✅ Live deployment (Render frontend + backend)
-- ✅ Video demonstration (User to record)
-
----
-
-## 📄 License & Ownership
-
-All code and materials are the property of V7 AI Solutions. Unauthorized distribution is prohibited.
-
----
-
-## 👤 Support
-
-For issues or questions, contact the development team or check the GitHub repository for updates.
-
----
-
-**Last Updated**: March 15, 2026  
-**Status**: Production Ready ✅
-
