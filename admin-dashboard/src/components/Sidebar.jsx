@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 export default function Sidebar({ currentPage, onNavigate, adminUser, onLogout }) {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '.🖥️' },
+    { id: 'dashboard', label: 'Dashboard', icon: '.📊' },
     { id: 'users', label: 'Users', icon: '👥' },
     { id: 'counsellors', label: 'Counsellors', icon: '🗣️' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
@@ -15,9 +15,9 @@ export default function Sidebar({ currentPage, onNavigate, adminUser, onLogout }
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <div className="logo"></div>
+        <div className="logo">🧑‍💼</div>
         <div className="brand">
-          <h2>Admin Dashboard </h2>
+          <h2>Admin Dashboard</h2>
         </div>
       </div>
 
