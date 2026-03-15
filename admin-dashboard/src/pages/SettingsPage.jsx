@@ -6,31 +6,7 @@ export default function SettingsPage() {
         <p>System configuration</p>
       </div>
 
-      <div className="settings-card">
-        <h2>Notifications</h2>
-        <div className="settings-content">
-          <div className="setting-item">
-            <div className="setting-info">
-              <p className="setting-title">Email Notifications</p>
-              <p className="setting-desc">Receive email updates about important events</p>
-            </div>
-            <div className="toggle-switch">
-              <input type="checkbox" id="email-notif" />
-              <label htmlFor="email-notif"></label>
-            </div>
-          </div>
-          <div className="setting-item">
-            <div className="setting-info">
-              <p className="setting-title">Push Notifications</p>
-              <p className="setting-desc">Receive push notifications on your devices</p>
-            </div>
-            <div className="toggle-switch">
-              <input type="checkbox" id="push-notif" />
-              <label htmlFor="push-notif"></label>
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       <div className="settings-card">
         <h2>Data & Privacy</h2>

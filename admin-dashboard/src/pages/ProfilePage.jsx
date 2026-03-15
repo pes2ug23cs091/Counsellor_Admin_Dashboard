@@ -169,31 +169,6 @@ export default function ProfilePage() {
                 />
               </div>
 
-              <div className="form-group">
-                <label htmlFor="phone">Phone Number</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  className="form-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="department">Department</label>
-                <input
-                  type="text"
-                  id="department"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleInputChange}
-                  className="form-input"
-                  disabled
-                />
-              </div>
-
               <div className="form-actions">
                 <button type="button" className="btn btn-primary" onClick={handleSave}>
                   ✅ Save Changes
