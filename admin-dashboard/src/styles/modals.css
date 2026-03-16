@@ -320,19 +320,21 @@
 
 /* Completed Users Modal */
 .completed-users-modal {
-  max-width: 1000px;
-  width: 95%;
+  max-width: 1200px !important;
+  width: 98% !important;
 }
 
 .completed-users-table {
-  max-height: 500px;
+  max-height: 600px;
   overflow: auto;
+  width: 100%;
 }
 
 .completed-users-table table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 13px;
+  table-layout: fixed;
 }
 
 .completed-users-table thead {
@@ -343,16 +345,22 @@
 }
 
 .completed-users-table th {
-  padding: 12px 15px;
+  padding: 12px 10px;
   text-align: left;
   font-weight: 600;
   color: #2c3e50;
-  border-bottom: 1px solid #ecf0f1;
+  border-bottom: 2px solid #3498db;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .completed-users-table td {
-  padding: 12px 15px;
+  padding: 12px 10px;
   border-bottom: 1px solid #ecf0f1;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .completed-users-table tbody tr:hover {
